@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
 import VerifySection from "./pages/VerifySection";
 import RegisterSection from "./pages/RegisterSection";
+import LoginSection from "./pages/LoginSection";
 
 function Protected({ children }: { children: JSX.Element }) {
   const { user } = useAuth();
@@ -15,55 +16,54 @@ const SLIDES = [
   { id: "home", label: "Home" },
   { id: "verify", label: "Verify" },
   { id: "register", label: "Register" },
+  { id: "login", label: "Sign in" },
 ];
 
-function LandingPage() {
-  const [current, setCurrent] = useState(0);
+function LandingPage({ current, goTo }: { current: number; goTo: (i: number) => void }) {
   const total = SLIDES.length;
 
-  const goTo = (idx: number) => {
-    setCurrent(Math.max(0, Math.min(total - 1, idx)));
-  };
-
-  // Keyboard arrow navigation
+  // Keyboard arrows (ignored while typing in a field)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (e.key === "ArrowRight") goTo(current + 1);
       if (e.key === "ArrowLeft") goTo(current - 1);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [current]);
+  }, [current, goTo]);
 
-  // Touch/swipe support
+  // Horizontal swipe (ignored for mostly-vertical gestures)
   useEffect(() => {
     let startX = 0;
-    const onTouchStart = (e: TouchEvent) => { startX = e.touches[0].clientX; };
-    const onTouchEnd = (e: TouchEvent) => {
-      const diff = startX - e.changedTouches[0].clientX;
-      if (Math.abs(diff) > 50) goTo(current + (diff > 0 ? 1 : -1));
+    let startY = 0;
+    const onStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
     };
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    const onEnd = (e: TouchEvent) => {
+      const dx = startX - e.changedTouches[0].clientX;
+      const dy = startY - e.changedTouches[0].clientY;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) goTo(current + (dx > 0 ? 1 : -1));
+    };
+    window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchend", onEnd, { passive: true });
     return () => {
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchstart", onStart);
+      window.removeEventListener("touchend", onEnd);
     };
-  }, [current]);
+  }, [current, goTo]);
 
   return (
     <div className="slider-root">
-      {/* Slide track */}
-      <div
-        className="slider-track"
-        style={{ transform: `translateX(-${current * 100}vw)` }}
-      >
-        <div className="slide" id="home">     <Home />         </div>
-        <div className="slide" id="verify">   <VerifySection /></div>
-        <div className="slide" id="register"> <RegisterSection /></div>
+      <div className="slider-track" style={{ transform: `translateX(-${current * 100}vw)` }}>
+        <div className="slide" id="home"><Home /></div>
+        <div className="slide" id="verify"><VerifySection /></div>
+        <div className="slide" id="register"><RegisterSection /></div>
+        <div className="slide" id="login"><LoginSection /></div>
       </div>
 
-      {/* Left arrow */}
       <button
         className="slider-arrow slider-arrow--left"
         onClick={() => goTo(current - 1)}
@@ -75,7 +75,6 @@ function LandingPage() {
         </svg>
       </button>
 
-      {/* Right arrow */}
       <button
         className="slider-arrow slider-arrow--right"
         onClick={() => goTo(current + 1)}
@@ -87,7 +86,6 @@ function LandingPage() {
         </svg>
       </button>
 
-      {/* Dot indicators */}
       <div className="slider-dots" role="tablist" aria-label="Slides">
         {SLIDES.map((s, i) => (
           <button
@@ -112,49 +110,60 @@ export default function App() {
   const location = useLocation();
   const isLanding = location.pathname === "/";
 
-  // Navbar shadow on scroll (dashboard page only)
+  const goTo = (idx: number) => setCurrent(Math.max(0, Math.min(SLIDES.length - 1, idx)));
+
+  // Navbar shadow on scroll
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handler, { passive: true });
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
-  // Expose a way for nav links to jump to a slide
-  const jumpTo = (idx: number) => {
-    setCurrent(idx);
-    // dispatch a custom event so LandingPage can also respond
-    window.dispatchEvent(new CustomEvent("slider:goto", { detail: idx }));
-  };
+  // Make links like <a href="#login"> or <Link to="/#register"> move the slider
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement).closest("a");
+      const href = a?.getAttribute("href") ?? "";
+      const m = href.match(/^\/?#(\w+)$/);
+      if (!m) return;
+      const idx = SLIDES.findIndex((s) => s.id === m[1]);
+      if (idx < 0) return;
+      if (href.startsWith("#")) e.preventDefault(); // plain anchors; "/#x" links are handled by the router
+      goTo(idx);
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, []);
 
   return (
     <>
       <header className={`navbar${scrolled || !isLanding ? " navbar--scrolled" : ""}`}>
-        <a href="/" className="brand" onClick={() => jumpTo(0)}>
+        <Link to="/" className="brand" onClick={() => goTo(0)}>
           <span className="brand-dot" />
           GENEX
-        </a>
+        </Link>
 
         {isLanding && (
           <nav className="navbar-links" aria-label="Main navigation">
             {SLIDES.map(({ id, label }, idx) => {
-              if (id === "register" && user) return null; // keep nav clean when logged in
+              if (id === "login" && user) return null; // signed in: show Dashboard instead
               return (
                 <button
                   key={id}
-                  className={`nav-link${current === idx ? " active" : ""}${id === "register" ? " nav-link--cta" : ""}`}
-                  onClick={() => jumpTo(idx)}
+                  className={`nav-link${current === idx ? " active" : ""}${id === "login" ? " nav-link--cta" : ""}`}
+                  onClick={() => goTo(idx)}
                 >
                   {label}
                 </button>
               );
             })}
-            {user ? (
+            {user && (
               <span className="navbar-user">
                 <span className="user-dot">{user.email[0].toUpperCase()}</span>
                 <Link to="/dashboard" className="nav-link">Dashboard</Link>
                 <button className="nav-link linklike" onClick={logout}>Sign out</button>
               </span>
-            ) : null}
+            )}
           </nav>
         )}
 
@@ -182,11 +191,18 @@ export default function App() {
 
       {menuOpen && (
         <div className="mobile-drawer" onClick={() => setMenuOpen(false)}>
-          {isLanding && SLIDES.map(({ id, label }, idx) => (
-            <button key={id} className="drawer-link" onClick={() => { jumpTo(idx); setMenuOpen(false); }}>
-              {label}
-            </button>
-          ))}
+          {isLanding &&
+            SLIDES.map(({ id, label }, idx) =>
+              id === "login" && user ? null : (
+                <button
+                  key={id}
+                  className="drawer-link"
+                  onClick={() => { goTo(idx); setMenuOpen(false); }}
+                >
+                  {label}
+                </button>
+              )
+            )}
           {user && (
             <>
               <Link to="/dashboard" className="drawer-link" onClick={() => setMenuOpen(false)}>Dashboard</Link>
@@ -198,119 +214,11 @@ export default function App() {
 
       <main>
         <Routes>
-          <Route path="/" element={<LandingPageWrapper onSlideChange={setCurrent} current={current} />} />
+          <Route path="/" element={<LandingPage current={current} goTo={goTo} />} />
           <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
     </>
-  );
-}
-
-// Wrapper so App can sync its nav highlight with slider state
-function LandingPageWrapper({
-  onSlideChange,
-  current: externalCurrent,
-}: {
-  onSlideChange: (i: number) => void;
-  current: number;
-}) {
-  const [current, setCurrent] = useState(externalCurrent);
-  const total = SLIDES.length;
-
-  const goTo = (idx: number) => {
-    const next = Math.max(0, Math.min(total - 1, idx));
-    setCurrent(next);
-    onSlideChange(next);
-  };
-
-  // Listen for nav-triggered jumps
-  useEffect(() => {
-    const handler = (e: Event) => goTo((e as CustomEvent<number>).detail);
-    window.addEventListener("slider:goto", handler);
-    return () => window.removeEventListener("slider:goto", handler);
-  }, []);
-
-  // Keep in sync if parent changes (e.g. nav click)
-  useEffect(() => {
-    setCurrent(externalCurrent);
-  }, [externalCurrent]);
-
-  // Keyboard
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") goTo(current + 1);
-      if (e.key === "ArrowLeft") goTo(current - 1);
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [current]);
-
-  // Touch/swipe
-  useEffect(() => {
-    let startX = 0;
-    const onTouchStart = (e: TouchEvent) => { startX = e.touches[0].clientX; };
-    const onTouchEnd = (e: TouchEvent) => {
-      const diff = startX - e.changedTouches[0].clientX;
-      if (Math.abs(diff) > 50) goTo(current + (diff > 0 ? 1 : -1));
-    };
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchend", onTouchEnd, { passive: true });
-    return () => {
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchend", onTouchEnd);
-    };
-  }, [current]);
-
-  return (
-    <div className="slider-root">
-      {/* Track */}
-      <div
-        className="slider-track"
-        style={{ transform: `translateX(-${current * 100}vw)` }}
-      >
-        <div className="slide"><Home /></div>
-        <div className="slide"><VerifySection /></div>
-        <div className="slide"><RegisterSection /></div>
-      </div>
-
-      {/* Left arrow */}
-      <button
-        className="slider-arrow slider-arrow--left"
-        onClick={() => goTo(current - 1)}
-        disabled={current === 0}
-        aria-label="Previous slide"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
-      </button>
-
-      {/* Right arrow */}
-      <button
-        className="slider-arrow slider-arrow--right"
-        onClick={() => goTo(current + 1)}
-        disabled={current === total - 1}
-        aria-label="Next slide"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </button>
-
-      {/* Dots */}
-      <div className="slider-dots" role="tablist" aria-label="Slides">
-        {SLIDES.map((s, i) => (
-          <button
-            key={s.id}
-            role="tab"
-            aria-selected={i === current}
-            aria-label={`Go to ${s.label}`}
-            className={`slider-dot${i === current ? " active" : ""}`}
-            onClick={() => goTo(i)}
-          />
-        ))}
-      </div>
-    </div>
   );
 }
