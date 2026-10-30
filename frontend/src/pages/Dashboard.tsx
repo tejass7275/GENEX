@@ -17,7 +17,7 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <>
+    <div className="dash-wrap">
       <h1>My content</h1>
       <p className="note mono">{user?.did}</p>
       {error && <p className="err">{error}</p>}
@@ -39,6 +39,6 @@ export default function Dashboard() {
           ))
         )}
       </div>
-    </>
+    </div>
   );
 }
