@@ -14,7 +14,8 @@
   --bad: #c0392b;
   --manip: #d35400;
   --glow: rgba(168, 85, 247, 0.20);
-  --navbar-h: 64px;
+  --navbar-h: 76px;
+  /* 64px bar + 12px top offset */
 }
 
 /* ─── Reset & base ──────────────────────────────────────────── */
@@ -188,25 +189,34 @@ main {
 /* ─── Navbar ────────────────────────────────────────────────── */
 .navbar {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 0.75rem;
+  left: 1.25rem;
+  right: 1.25rem;
   z-index: 100;
   height: var(--navbar-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 2rem;
-  background: rgba(26, 10, 46, 0.65);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.2s, background 0.2s;
+  background: rgba(26, 10, 46, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(168, 85, 247, 0.18);
+  border-radius: 16px;
+  box-shadow:
+    0 4px 24px rgba(168, 85, 247, 0.18),
+    0 1px 0 rgba(168, 85, 247, 0.10),
+    0 8px 32px rgba(0, 0, 0, 0.45);
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
 }
 
 .navbar--scrolled {
   background: rgba(26, 10, 46, 0.96);
-  border-bottom-color: var(--line);
+  border-color: rgba(168, 85, 247, 0.30);
+  box-shadow:
+    0 4px 28px rgba(168, 85, 247, 0.28),
+    0 1px 0 rgba(168, 85, 247, 0.15),
+    0 10px 40px rgba(0, 0, 0, 0.60);
 }
 
 .brand {
@@ -321,17 +331,19 @@ main {
 /* Mobile drawer */
 .mobile-drawer {
   position: fixed;
-  top: var(--navbar-h);
-  left: 0;
-  right: 0;
+  top: calc(var(--navbar-h) + 0.25rem);
+  left: 1.25rem;
+  right: 1.25rem;
   z-index: 99;
   background: #2a1250;
-  border-bottom: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: 14px;
   padding: 0.75rem 1.5rem 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   animation: slideDown 0.15s ease;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
 
 @keyframes slideDown {
