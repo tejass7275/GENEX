@@ -13,7 +13,7 @@ export default function RegisterSection() {
     const [error, setError] = useState("");
     const [record, setRecord] = useState<ContentRecord | null>(null);
 
-    async function handle(file: File) {
+        async function handle(file: File) {
         setBusy(true);
         setError("");
         setRecord(null);
@@ -26,6 +26,13 @@ export default function RegisterSection() {
                 phash,
             });
             setRecord(rec);
+
+            // Send the file once so the backend can run the AI check (it is deleted afterwards)
+            try {
+                await api.uploadMedia(rec.id, file);
+            } catch (e) {
+                setError(`Registered, but the AI check could not start: ${(e as Error).message}`);
+            }
         } catch (e) {
             setError((e as Error).message);
         } finally {

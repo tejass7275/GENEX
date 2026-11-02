@@ -54,6 +54,20 @@ export const api = {
   registerContent: (p: { filename: string; content_type: string; sha256: string; phash: string | null }) =>
     request<ContentRecord>("/content/register", { method: "POST", body: JSON.stringify(p) }),
   myContent: () => request<ContentRecord[]>("/content/mine"),
+    uploadMedia: async (id: string, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const t = localStorage.getItem("dcas_token");
+    const res = await fetch(`${BASE}/content/${id}/media`, {
+      method: "POST",
+      headers: t ? { Authorization: `Bearer ${t}` } : {},
+      body: fd,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail ?? `Upload failed (${res.status})`);
+    }
+  },
   verifyHashes: (p: { sha256: string; phash: string | null }) =>
     request<VerifyResult>("/verify", { method: "POST", body: JSON.stringify(p) }),
 };
