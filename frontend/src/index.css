@@ -414,6 +414,29 @@ main {
   margin-bottom: 1.25rem;
 }
 
+/* ── Statement heading override ─────────────────────────────── */
+.hero-statement {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(3rem, 7vw, 5.2rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+
+  /* gradient text */
+  background: linear-gradient(120deg,
+      #ffffff 0%,
+      #d8b4fe 40%,
+      #a855f7 70%,
+      #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  /* soft glow behind the text */
+  filter: drop-shadow(0 0 28px rgba(168, 85, 247, 0.45));
+}
+
 .hero-accent {
   background: linear-gradient(90deg, var(--accent), var(--accent2));
   -webkit-background-clip: text;
