@@ -13,7 +13,7 @@ export default function RegisterSection() {
     const [error, setError] = useState("");
     const [record, setRecord] = useState<ContentRecord | null>(null);
 
-        async function handle(file: File) {
+           async function handle(file: File) {
         setBusy(true);
         setError("");
         setRecord(null);
