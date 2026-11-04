@@ -12,7 +12,7 @@ export default function Home() {
                     Combat deepfakes with cryptographic truth.
                 </p>
                 <div className="hero-actions">
-                    <a href="#verify" className="btn btn-primary">Verify a file</a>
+                    <a href="#verify" className="btn btn-outline">Verify a file</a>
                     <a href="#register" className="btn btn-outline">Register content</a>
                 </div>
             </div>
