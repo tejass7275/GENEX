@@ -36,4 +36,3 @@ app.include_router(verify.router, tags=["verify"])
 @app.get("/health")
 def health():
     return {"ok": True}
-
